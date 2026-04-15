@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مكتب نفقة الدولة ببركة الحاج</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="xlsx.full.min.js"></script>
+    <script>
+        if (typeof XLSX === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+        }
+    </script>
+    <style>
+        :root {
+            --primary: #1565C0;
+            --primary-gradient: linear-gradient(135deg, #1e88e5, #1565C0);
+            --bg-color: #F4F7FB;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --success: #2E7D32;
+            --danger: #C62828;
+            --warning: #F9A825;
+            --radius: 12px; 
+            --shadow: 0 4px 10px rgba(0,0,0,0.05);
+            --input-bg: #ffffff;
+            --circle-bg: #eeeeee;
+        }
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #E0E0E0;
+            --text-muted: #B0B0B0;
+            --input-bg: #2D2D2D;
+            --shadow: 0 4px 10px rgba(0,0,0,0.3);
+            --circle-bg: #333333;
+        }
+        body { 
+            font-family: 'Cairo', Tahoma, sans-serif; background-color: var(--bg-color); 
+            margin: 0; padding-bottom: 30px; color: var(--text-main);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        
+        /* ---------------- Loading Splash Screen ---------------- */
+        #splashScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 99999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        .splash-logo {
+            width: 140px; height: 140px; border-radius: 50%; object-fit: cover;
+            border: 4px solid var(--primary); margin-bottom: 20px;
+            animation: pulseLogo 2s infinite; background: #fff; padding: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .splash-text {
+            font-size: 20px; font-weight: 800; color: var(--primary); margin-bottom: 15px;
+            animation: fadeInOut 1.5s infinite alternate;
+        }
+        .loading-bar-container {
+            width: 250px; height: 6px; background: var(--circle-bg);
+            border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .loading-bar {
+            height: 100%; width: 0%; background: var(--primary-gradient);
+            border-radius: 10px; animation: loadBar 2.5s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+        }
+        @keyframes loadBar { 0% { width: 0%; } 100% { width: 100%; } }
+        @keyframes pulseLogo { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 101, 192, 0.4); } 70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(21, 101, 192, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(21, 101, 192, 0); } }
+        @keyframes fadeInOut { from { opacity: 0.6; } to { opacity: 1; } }
+        /* ------------------------------------------------------- */
+
+        .header { 
+            background: var(--primary-gradient); color: white; padding: 12px 15px; 
+            position: sticky; top: 0; z-index: 100; 
+            box-shadow: 0 4px 10px rgba(21, 101, 192, 0.3); 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;
+        }
+        .header-brand {
+            display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800;
+        }
+        .header-logo {
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #fff; padding: 2px;
+        }
+        .header-controls { display: flex; gap: 8px; }
+        
+        .theme-toggle {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            padding: 5px; border-radius: 50%; cursor: pointer; display: flex;
+            justify-content: center; align-items: center; width: 32px; height: 32px;
+            font-size: 14px; transition: 0.3s;
+        }
+        .theme-toggle:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); } }
+        
+        .container { padding: 0 12px; }
+        .sync-btn { 
+            background: #0088cc; border: none; color: white; padding: 12px; 
+            border-radius: var(--radius); width: 100%; font-weight: 700; font-size: 14px;
+            margin: 12px 0; cursor: pointer; display: flex; justify-content: center; gap: 8px;
+        }
+        .upload-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+        .upload-btn { 
+            background: var(--card-bg); border: 2px dashed var(--success); color: var(--success); 
+            padding: 8px; border-radius: var(--radius); width: 48%; text-align: center;
+            font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;
+        }
+        input[type="file"] { display: none; }
+        .controls-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; }
+        .search-wrapper { position: relative; flex: 1; display: flex; }
+        .search-box { 
+            width: 100%; padding: 10px 15px; border-radius: 20px; 
+            border: 1px solid #ddd; background: var(--input-bg); color: var(--text-main);
+            outline: none; box-shadow: var(--shadow); font-family: inherit;
+            font-size: 13px; box-sizing: border-box; transition: 0.3s;
+        }
+        .search-box:focus { border-color: var(--primary); }
+        .sort-select {
+            background: var(--input-bg); color: var(--text-main); border: 1px solid #ddd;
+            border-radius: 20px; padding: 0 8px; font-family: inherit; font-size: 12px;
+            font-weight: 700; outline: none; box-shadow: var(--shadow); cursor: pointer;
+        }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 12px; }
+        .stat-item { background: var(--card-bg); padding: 8px 2px; border-radius: var(--radius); text-align: center; box-shadow: var(--shadow); border-top: 3px solid var(--primary); }
+        .stat-val { display: block; font-size: 15px; font-weight: 800; margin-bottom: 0;}
+        .stat-label { font-size: 10px; color: var(--text-muted); font-weight: 700; }
+        .stat-total { grid-column: span 4; padding: 8px; border-top: 3px solid #607D8B; }
+        .stat-total .stat-val { font-size: 18px; color: #607D8B; display: inline; margin-right: 10px;}
+        .stat-total .stat-label { font-size: 12px; display: inline;}
+        
+        .tools-scroll, .filters-scroll { display: flex; overflow-x: auto; gap: 6px; margin-bottom: 12px; padding: 2px 0; scrollbar-width: none; }
+        .tools-scroll::-webkit-scrollbar, .filters-scroll::-webkit-scrollbar { display: none; }
+        .tool-btn { white-space: nowrap; padding: 8px 12px; border-radius: 10px; border: 1px solid #ddd; background: var(--card-bg); color: var(--text-main); font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px;}
+        
+        .filter-btn { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1px solid #ddd; background: var(--card-bg); color: var(--text-main); font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .filter-btn-toggle.active { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .tabs { display: flex; background: rgba(0,0,0,0.05); border-radius: 30px; padding: 4px; margin-bottom: 12px; }
+        .tab { padding: 8px; width: 50%; text-align: center; font-weight: 700; cursor: pointer; border-radius: 26px; transition: 0.3s; font-size: 13px; }
+        .tab.active { background: var(--primary-gradient); color: white; }
+        
+        .card { 
+            background: var(--card-bg); border-radius: var(--radius); padding: 12px 14px; 
+            margin-bottom: 10px; border-right: 5px solid #ccc; box-shadow: var(--shadow); 
+            animation: slideUp 0.3s ease; transition: background 0.3s ease;
+        }
+        @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+        
+        .c-green { border-right-color: var(--success) !important; background: rgba(46, 125, 50, 0.04) !important; } .t-green { color: var(--success) !important; }
+        .c-red { border-right-color: var(--danger) !important; background: rgba(198, 40, 40, 0.05) !important; } .t-red { color: var(--danger) !important; }
+        .c-yellow { border-right-color: var(--warning) !important; background: rgba(249, 168, 37, 0.05) !important; } .t-yellow { color: var(--warning) !important; }
+        .c-blue { border-right-color: var(--primary) !important; background: rgba(21, 101, 192, 0.04) !important; } .t-blue { color: var(--primary) !important; }
+        .c-gray { border-right-color: #9E9E9E !important; }
+
+        .card-header-flex { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+        .patient-name { font-size: 15px; font-weight: 800; margin: 0; line-height: 1.2; flex: 1; }
+        .status-badge { 
+            font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 10px; 
+            background: var(--card-bg); white-space: nowrap; border: 1px solid rgba(0,0,0,0.1);
+        }
+        .info-row-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 5px; flex-wrap: wrap; }
+        .id-badge {
+            background: rgba(0,0,0,0.03); border-radius: 6px; padding: 5px;
+            margin: 6px 0 0 0; font-size: 11px; font-weight: 700; color: var(--text-main);
+            display: flex; justify-content: space-around; flex-wrap: wrap; gap: 3px;
+        }
+        .decision-card { display: flex; justify-content: space-between; align-items: center; }
+        .decision-details { flex: 1; margin-left: 8px;}
+        
+        .circular-progress { position: relative; width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0;}
+        .inner-circle { position: absolute; width: 43px; height: 43px; background: var(--card-bg); border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .circle-val { font-size: 15px; font-weight: 800; line-height: 1.1;}
+        .circle-label { font-size: 9px; color: var(--text-muted); font-weight: 700; }
+        .info { margin-bottom: 0; font-size: 12px; color: var(--text-muted); }
+        .copyable { cursor: pointer; color: var(--primary); font-weight: 700; border-bottom: 1px dashed var(--primary); }
+        mark { background: #ffeb3b; color: #000; border-radius: 2px; padding: 0 2px; }
+        
+        .fab { position: fixed; bottom: 20px; left: 20px; background: var(--primary); color: white; width: 45px; height: 45px; border-radius: 50%; display: none; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; font-size: 18px;}
+        .fab-dashboard { position: fixed; bottom: 20px; right: 20px; background: #607D8B; color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; font-size: 18px; border: 2px solid #fff;}
+        
+        .load-more { width: 100%; padding: 10px; background: none; border: 2px solid var(--primary); color: var(--primary); border-radius: var(--radius); font-weight: 700; font-size: 13px; margin: 10px 0; cursor: pointer; display: none; font-family: inherit; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 2000; display: none; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body data-theme="light">
+    
+    <div id="splashScreen">
+        <img src="logo.jpg" alt="لوجو المكتب" class="splash-logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%231565C0%22><path d=%22M12 2L2 22h20L12 2zm0 3.5L18.5 19H5.5L12 5.5z%22/></svg>'">
+        <div class="splash-text">جاري تحميل الموقع...</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar"></div>
+        </div>
+    </div>
+
+    <audio id="quranAudio" loop>
+        <source src="https://backup.qurango.net/radio/tarateel" type="audio/mpeg">
+    </audio>
+    <div class="header">
+        <div class="header-brand">
+            <img src="logo.jpg" alt="لوجو المكتب" class="header-logo" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%231565C0%22><path d=%22M12 2L2 22h20L12 2zm0 3.5L18.5 19H5.5L12 5.5z%22/></svg>'">
+            <span>مكتب نفقة الدولة</span>
+        </div>
+        <div class="header-controls">
+            <button class="theme-toggle" onclick="showAboutModal()" title="عن المصمم">👨‍💻</button>
+            <button class="theme-toggle" onclick="showChangelog()" title="سجل التغييرات">📝</button>
+            <button class="theme-toggle" onclick="toggleAudio()" id="audioBtn" title="تشغيل/إيقاف الصوت">🔇</button>
+            <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" title="الوضع الليلي">🌙</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <button class="sync-btn" onclick="window.open('https://t.me/+Z4nntxONGlFkMmNk')">🌐 التحديث من التليجرام</button>
+        
+        <div class="upload-row">
+            <label class="upload-btn">📁 مراجعة بيانات <input type="file" onchange="processExcel(event, 'inquiry')"></label>
+            <label class="upload-btn">📑 قرارات واستدعاء <input type="file" onchange="processExcel(event, 'decision')"></label>
+        </div>
+
+        <div class="tools-scroll">
+            <button class="tool-btn" style="color: var(--danger); border-color: var(--danger);" onclick="showDataQuality()">🚨 جودة البيانات</button>
+            <button class="tool-btn" style="color: var(--primary); border-color: var(--primary);" onclick="showDemographics()">🗺️ الخريطة</button>
+            <button class="tool-btn" style="color: #E65100; border-color: #E65100;" onclick="showGlobalRadar()">📡 رادار القرارات</button>
+            <button class="tool-btn" style="color: #4CAF50; border-color: #4CAF50;" onclick="showActivityLogUI()">🕒 سجل النشاط</button>
+            <button class="tool-btn" style="color: #B71C1C; border-color: #B71C1C; background: rgba(183, 28, 28, 0.05);" onclick="showDeleteModal()">🗑️ حذف البيانات</button>
+        </div>
+
+        <div class="controls-row">
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" class="search-box" placeholder="ابحث بالاسم أو القومي...">
+            </div>
+            <select id="sortSelect" class="sort-select" onchange="resetAndRender()">
+                <option value="default">⏱ ترتيب</option>
+                <option value="az">🔤 أ - ي</option>
+                <option value="za">🔤 ي - أ</option>
+                <option value="days">⏳ الأقرب للانتهاء</option>
+            </select>
+        </div>
+        
+        <div class="filters-scroll" id="filterBarTab1">
+            <button class="filter-btn active" onclick="setFilter('الكل', this)">الكل</button>
+            <button class="filter-btn" onclick="setFilter('مستحق', this)">🟢 مستحق</button>
+            <button class="filter-btn" onclick="setFilter('مؤمن', this)">🔴 مؤمن عليه</button>
+            <button class="filter-btn" onclick="setFilter('قرار', this)">🟡 له قرار خارجي</button>
+            <button class="filter-btn" onclick="setFilter('سوداني', this)">🔵 سوداني</button>
+        </div>
+
+        <div class="filters-scroll" id="filterBarTab2" style="display: none;">
+            <button class="filter-btn filter-btn-toggle" id="hideExpiredBtn" onclick="toggleHideExpired(this)">👁️ إخفاء القرارات المنتهية</button>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" id="t1" onclick="switchTab(1)">مراجعة البيانات</div>
+            <div class="tab" id="t2" onclick="switchTab(2)">حالة القرارات</div>
+        </div>
+        
+        <div id="statsPanel" class="stats-grid" style="display: none;"></div>
+        <div id="contentList"></div>
+        <button id="loadMoreBtn" class="load-more" onclick="loadMore()">عرض المزيد ⬇️</button>
+    </div>
+    
+    <div class="fab" id="fabUp" onclick="window.scrollTo({top:0, behavior:'smooth'})">⬆️</div>
+    <div class="fab-dashboard" id="fabStats" onclick="showMiniDashboard()" title="لوحة تحكم سريعة">📊</div>
+    <div class="toast" id="toast">تم النسخ بنجاح!</div>
+    
+    <script>
+        // --- التحكم في شاشة التحميل عند فتح الموقع ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splashScreen');
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }, 2500); // الشاشة تظل لـ 2.5 ثانية كما طلبت
+        });
+
+        let inquiryData = JSON.parse(localStorage.getItem('db_inquiry') || '[]');
+        let decisionData = JSON.parse(localStorage.getItem('db_decision') || '[]');
+        let inquiryDecisions = JSON.parse(localStorage.getItem('db_inquiry_decisions') || '[]'); 
+        
+        let ignoredIssues = JSON.parse(localStorage.getItem('ignored_issues') || '[]');
+        let activityLog = JSON.parse(localStorage.getItem('activity_log') || '[]');
+        
+        let mergedDecisionsData = []; 
+
+        let currentTab = 1;
+        let currentFilter = 'الكل';
+        let isHideExpired = false; 
+        let itemsLimit = 20;
+        
+        let lastAlertQuery = ""; 
+        let audioCtx = null;
+
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        document.addEventListener('click', initAudio, { once: true });
+        document.getElementById('searchInput').addEventListener('focus', initAudio, { once: true });
+
+        function triggerHapticAndAudio() {
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]); 
+            if (audioCtx) {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                let oscillator = audioCtx.createOscillator(); let gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); 
+                oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+                oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function logActivity(action) {
+            let time = new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'});
+            activityLog.unshift({action, time});
+            if(activityLog.length > 30) activityLog.pop();
+            localStorage.setItem('activity_log', JSON.stringify(activityLog));
+        }
+
+        const govMap = {
+            '01':'القاهرة', '02':'الإسكندرية', '03':'بورسعيد', '04':'السويس', '11':'دمياط', '12':'الدقهلية', 
+            '13':'الشرقية', '14':'القليوبية', '15':'كفر الشيخ', '16':'الغربية', '17':'المنوفية', '18':'البحيرة', 
+            '19':'الإسماعيلية', '21':'الجيزة', '22':'بني سويف', '23':'الفيوم', '24':'المنيا', '25':'أسيوط', 
+            '26':'سوهاج', '27':'قنا', '28':'أسوان', '29':'الأقصر', '31':'البحر الأحمر', '32':'الوادي الجديد', 
+            '33':'مطروح', '34':'شمال سيناء', '35':'جنوب سيناء', '88':'خارج الجمهورية'
+        };
+
+        function parseNationalId(idStr) {
+            let id = String(idStr).trim();
+            if (!id || id.length !== 14 || !/^\d+$/.test(id)) return null;
+            let centuryCode = id[0]; let year = parseInt(id.substring(1, 3)); let month = parseInt(id.substring(3, 5));
+            let day = parseInt(id.substring(5, 7)); let govCode = id.substring(7, 9); let genderCode = parseInt(id[12]);
+            let fullYear = (centuryCode === '2' ? 1900 : (centuryCode === '3' ? 2000 : 0)) + year;
+            if (fullYear === year || month > 12 || day > 31) return null;
+            let today = new Date(); let dob = new Date(fullYear, month - 1, day);
+            let age = today.getFullYear() - dob.getFullYear();
+            let m = today.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) { age--; }
+            return { age: age, gender: (genderCode % 2 === 0) ? 'أنثى👩' : 'ذكر👨', gov: govMap[govCode] || 'غير معروف' };
+        }
+
+        function toggleAudio() {
+            const audio = document.getElementById('quranAudio'); const btn = document.getElementById('audioBtn');
+            audio.volume = 0.15; 
+            if (audio.paused) { audio.play(); btn.innerText = '🔊'; btn.style.background = 'rgba(46, 125, 50, 0.4)'; } 
+            else { audio.pause(); btn.innerText = '🔇'; btn.style.background = 'rgba(255,255,255,0.2)'; }
+        }
+
+        function toggleTheme() {
+            const body = document.body; const newTheme = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            body.setAttribute('data-theme', newTheme); document.getElementById('themeBtn').innerText = newTheme === 'light' ? '🌙' : '☀️';
+            localStorage.setItem('app-theme', newTheme);
+        }
+        if(localStorage.getItem('app-theme') === 'dark') toggleTheme();
+
+        function setFilter(f, btn) {
+            currentFilter = f; document.querySelectorAll('#filterBarTab1 .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); resetAndRender();
+        }
+
+        function toggleHideExpired(btn) {
+            isHideExpired = !isHideExpired;
+            btn.classList.toggle('active', isHideExpired);
+            resetAndRender();
+        }
+
+        function switchTab(n) {
+            currentTab = n; 
+            document.getElementById('t1').classList.toggle('active', n === 1);
+            document.getElementById('t2').classList.toggle('active', n === 2);
+            document.getElementById('filterBarTab1').style.display = n === 1 ? 'flex' : 'none'; 
+            document.getElementById('filterBarTab2').style.display = n === 2 ? 'flex' : 'none'; 
+            resetAndRender();
+        }
+
+        function resetAndRender() { itemsLimit = 20; render(); }
+        function loadMore() { itemsLimit += 20; render(); }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text); const t = document.getElementById('toast');
+            t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000);
+        }
+
+        function highlight(text, query) {
+            if (!query) return text; const regex = new RegExp(`(${query})`, 'gi'); return text.replace(regex, '<mark>$1</mark>');
+        }
+
+        function getRemainDays(decDate) {
+            if (!decDate) return 0; let dObj;
+            if (!isNaN(decDate) && typeof decDate !== 'string') dObj = new Date((decDate - 25569) * 86400 * 1000);
+            else {
+                let s = String(decDate).replace(/\\/g, '/').replace(/-/g, '/').split(' ')[0]; let p = s.split('/');
+                if (p.length >= 3) { let d = parseInt(p[0]), m = parseInt(p[1]), y = parseInt(p[2]); if (y < 100) y += 2000; dObj = (d > 1000) ? new Date(d, m - 1, y) : new Date(y, m - 1, d); }
+            }
+            if (!dObj) return 0; let diff = Math.floor((new Date() - dObj)/(1000*60*60*24)); return Math.max(0, 180 - diff); 
+        }
+
+        function formatExcelDate(val) {
+            if (!val) return ""; let dObj;
+            if (!isNaN(val) && typeof val !== 'string') dObj = new Date((val - 25569) * 86400 * 1000);
+            else {
+                let s = String(val).replace(/\\/g, '/').replace(/-/g, '/').split(' ')[0]; let p = s.split('/');
+                if (p.length >= 3) { let d = parseInt(p[0]), m = parseInt(p[1]), y = parseInt(p[2]); if (y < 100) y += 2000; dObj = (d > 1000) ? new Date(d, m - 1, y) : new Date(y, m - 1, d); }
+            }
+            return dObj ? dObj.toLocaleDateString('en-GB').replace(/\//g, '-') : String(val).trim();
+        }
+
+        function updateMergedData() {
+            let merged = [...decisionData]; 
+            inquiryDecisions.forEach(ext => {
+                let extDate = formatExcelDate(ext.decDate);
+                let n1 = String(ext.name).replace(/\s+/g, ''); 
+                let exists = merged.some(d => {
+                    let dDate = formatExcelDate(d.decDate);
+                    if (extDate !== dDate) return false;
+                    let n2 = String(d.name).replace(/\s+/g, '');
+                    return n1.includes(n2) || n2.includes(n1); 
+                });
+                if (!exists) merged.push(ext); 
+            });
+            mergedDecisionsData = merged;
+        }
+
+        function render() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const sortType = document.getElementById('sortSelect').value;
+            const list = document.getElementById('contentList');
+            const statsPanel = document.getElementById('statsPanel');
+            let data = currentTab === 1 ? inquiryData : mergedDecisionsData;
+
+            if (currentTab === 1 && inquiryData.length > 0) {
+                let stats = { total: inquiryData.length, m: 0, mo: 0, q: 0, su: 0 };
+                inquiryData.forEach(item => {
+                    let st = String(item.status || ""); let nId = String(item.nationalId || "");
+                    if (nId.includes('####') || st.includes("سوداني")) stats.su++;
+                    else if (st.includes("مؤمن")) stats.mo++; else if (st.includes("قرار")) stats.q++; else if (st.includes("مستحق") && !st.includes("غير")) stats.m++;
+                });
+                statsPanel.innerHTML = `
+                    <div class="stat-item" style="border-color:var(--success)"><span class="stat-val" style="color:var(--success)">${stats.m}</span><span class="stat-label">مستحق</span></div>
+                    <div class="stat-item" style="border-color:var(--danger)"><span class="stat-val" style="color:var(--danger)">${stats.mo}</span><span class="stat-label">مؤمن عليه</span></div>
+                    <div class="stat-item" style="border-color:var(--warning)"><span class="stat-val" style="color:var(--warning)">${stats.q}</span><span class="stat-label">قرار خارجي</span></div>
+                    <div class="stat-item" style="border-color:var(--primary)"><span class="stat-val" style="color:var(--primary)">${stats.su}</span><span class="stat-label">سوداني</span></div>
+                    <div class="stat-item stat-total"><span class="stat-label">إجمالي المستعلم عنهم:</span> <span class="stat-val">${stats.total}</span></div>
+                `;
+                statsPanel.style.display = 'grid';
+            } else { statsPanel.style.display = 'none'; }
+
+            let filtered = data.filter(item => {
+                const matchSearch = (item.name || '').toLowerCase().includes(query) || (item.nationalId || '').includes(query) || (item.decNum || '').includes(query);
+                let matchFilter = true;
+                if(currentTab === 1 && currentFilter !== 'الكل') {
+                    let st = item.status || '';
+                    if(currentFilter === 'سوداني') matchFilter = (item.nationalId || '').includes('####') || st.includes('سوداني');
+                    else if(currentFilter === 'مستحق') matchFilter = st.includes('مستحق') && !st.includes('غير');
+                    else matchFilter = st.includes(currentFilter);
+                }
+                
+                if(currentTab === 2 && isHideExpired) {
+                    if (getRemainDays(item.decDate) <= 0) matchFilter = false;
+                }
+                
+                return matchSearch && matchFilter;
+            });
+
+            if (query.length >= 3 && query !== lastAlertQuery && filtered.length > 0 && filtered.length <= 3) {
+                let hasExpired = false;
+                filtered.forEach(item => {
+                    if (currentTab === 2) {
+                        if (getRemainDays(item.decDate) <= 0) hasExpired = true;
+                    } else {
+                        if (String(item.status).includes('منتهي') || String(item.status).includes('مؤمن')) hasExpired = true;
+                    }
+                });
+                if (hasExpired) { triggerHapticAndAudio(); lastAlertQuery = query; logActivity(`تنبيه حرج للبحث: ${query}`); }
+            }
+            if (query === "") lastAlertQuery = "";
+
+            filtered.sort((a, b) => {
+                if (sortType === 'az') return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+                if (sortType === 'za') return String(b.name || '').localeCompare(String(a.name || ''), 'ar');
+                if (sortType === 'days' && currentTab === 2) return getRemainDays(a.decDate) - getRemainDays(b.decDate);
+                return 0; 
+            });
+
+            const displayData = filtered.slice(0, itemsLimit);
+            let html = '';
+
+            displayData.forEach(item => {
+                if (currentTab === 1) {
+                    let color = 'c-gray', status = item.status || 'غير محدد';
+                    if ((item.nationalId||'').includes('####') || status.includes('سوداني')) { color = 'c-blue'; status = 'سوداني'; }
+                    else if (status.includes('مؤمن')) { color = 'c-red'; status = 'مؤمن عليه'; }
+                    else if (status.includes('قرار')) { color = 'c-yellow'; status = 'له قرار'; }
+                    else if (status.includes('مستحق') && !status.includes('غير')) { color = 'c-green'; status = 'مستحق'; }
+                    
+                    let idDetailsHTML = ''; let idInfo = parseNationalId(item.nationalId);
+                    if(idInfo) { idDetailsHTML = `<div class="id-badge"><span>السن: ${idInfo.age}</span><span>${idInfo.gender}</span><span>${idInfo.gov}</span></div>`; }
+                    
+                    html += `
+                        <div class="card ${color}">
+                            <div class="card-header-flex">
+                                <div class="patient-name">${highlight(item.name, query)}</div>
+                                <div class="status-badge t-${color.replace('c-','')}">${status}</div>
+                            </div>
+                            <div class="info-row-flex">
+                                <div class="info">القومي: <span class="copyable" onclick="copyText('${item.nationalId}')">${highlight(item.nationalId, query)}</span></div>
+                                <div class="info">التاريخ: ${item.date || ''}</div>
+                            </div>
+                            ${idDetailsHTML}
+                        </div>`;
+                } else {
+                    let remain = getRemainDays(item.decDate);
+                    let color = 'c-blue', stat = "ساري", progColor = 'var(--primary)';
+                    if (remain <= 0) { color = 'c-red'; stat = "منتهي"; progColor = 'var(--danger)'; }
+                    else if (remain < 25) { color = 'c-yellow'; stat = "يوشك للانتهاء"; progColor = 'var(--warning)'; }
+                    let progWidth = (remain/180)*100;
+                    
+                    html += `
+                        <div class="card ${color} decision-card">
+                            <div class="decision-details">
+                                <div class="card-header-flex">
+                                    <div class="patient-name">${highlight(item.name, query)}</div>
+                                    <div class="status-badge t-${color.replace('c-','')}">${stat}</div>
+                                </div>
+                                <div class="info-row-flex">
+                                    <div class="info">الرقم/المصدر: <span class="copyable" onclick="copyText('${item.decNum}')">${highlight(item.decNum, query)}</span></div>
+                                    <div class="info">الصدور: ${formatExcelDate(item.decDate)}</div>
+                                </div>
+                            </div>
+                            <div class="circular-progress" style="background: conic-gradient(${progColor} ${progWidth}%, var(--circle-bg) 0);">
+                                <div class="inner-circle">
+                                    <span class="circle-val t-${color.replace('c-','')}">${remain}</span>
+                                    <span class="circle-label">يوم</span>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            });
+
+            list.innerHTML = html || '<p style="text-align:center; padding:20px; font-size:14px;">لا توجد نتائج مطابقة...</p>';
+            document.getElementById('loadMoreBtn').style.display = filtered.length > itemsLimit ? 'block' : 'none';
+        }
+
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => { 
+                resetAndRender(); 
+                if(e.target.value.trim().length >= 3) { logActivity(`بحث نصي: ${e.target.value}`); }
+            }, 300);
+        });
+
+        function processExcel(e, type) {
+            if (typeof XLSX === 'undefined') { alert("عفواً، يجب الاتصال بالإنترنت مرة واحدة لتحميل المكاتب."); return; }
+            const file = e.target.files[0]; const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result); const workbook = XLSX.read(data, {type: 'array'});
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
+                
+                let headerRowIndex = 0;
+                for(let i=0; i<Math.min(10, rows.length); i++) {
+                    if(rows[i] && rows[i].some(c => String(c).includes('الاسم') || String(c).includes('القومي'))) {
+                        headerRowIndex = i; break;
+                    }
+                }
+                
+                let headers = rows[headerRowIndex] || [];
+                let lastDecIdx = headers.findIndex(h => String(h).includes('اخر قرار') || String(h).includes('آخر قرار'));
+                let prevDecIdx = headers.findIndex(h => String(h).includes('القرارات السابقة'));
+
+                let temp = []; let extDecisions = []; 
+
+                for(let i = headerRowIndex + 1; i < rows.length; i++){
+                    let r = rows[i]; if(!r || !r[0]) continue;
+                    
+                    if(type === 'inquiry') {
+                        temp.push({name:r[0], date:formatExcelDate(r[1]), nationalId:String(r[2]||''), status:String(r[5]||'')});
+                        
+                        if (lastDecIdx !== -1 && r[lastDecIdx]) {
+                            extDecisions.push({ name: r[0], decNum: 'مستخرج (أخر قرار)', decDate: r[lastDecIdx] });
+                        }
+                        if (prevDecIdx !== -1 && r[prevDecIdx]) {
+                            let datesStr = String(r[prevDecIdx]);
+                            let splitDates = datesStr.split(/[\n,،+و-]/);
+                            splitDates.forEach(dStr => {
+                                if (dStr.trim().length >= 5) {
+                                    extDecisions.push({ name: r[0], decNum: 'مستخرج (قرار سابق)', decDate: dStr.trim() });
+                                }
+                            });
+                        }
+                    } else { 
+                        temp.push({name:r[0], decNum:String(r[1]||''), decDate:r[2]}); 
+                    }
+                }
+
+                if(type === 'inquiry') { 
+                    inquiryData = temp; localStorage.setItem('db_inquiry', JSON.stringify(temp)); 
+                    inquiryDecisions = extDecisions; localStorage.setItem('db_inquiry_decisions', JSON.stringify(extDecisions));
+                } else { 
+                    decisionData = temp; localStorage.setItem('db_decision', JSON.stringify(temp)); 
+                }
+                
+                updateMergedData(); 
+                logActivity(`رفع ملف ${type === 'inquiry' ? 'مراجعة بيانات' : 'قرارات'} جديد`);
+                alert("تم رفع وتحديث البيانات بنجاح!");
+                checkReminders(); 
+                render(); 
+            }; 
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showAboutModal() {
+            let html = `
+                <div style="text-align:center; direction: rtl;">
+                    <img src="profile.jpg" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23ccc%22><path d=%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22/></svg>'" alt="د/ علي الهواري" style="width:120px; height:120px; border-radius:50%; object-fit:cover; border:3px solid var(--primary); margin-bottom:10px; background:#f0f0f0;">
+                    <h3 style="margin:5px 0; color:var(--primary);">د/ علي سعيد علي الهواري</h3>
+                    <p style="margin:5px 0; font-size:13px; font-weight:bold; color:var(--text-main);">مسؤول التسجيل لمكتب نفقة الدولة بركة الحاج</p>
+                    <p style="margin:5px 0; font-size:14px; direction:ltr; font-weight:bold; color:var(--text-muted);">📞 01112352727</p>
+                    
+                    <div style="display:flex; justify-content:center; gap:10px; margin-top:20px; flex-wrap:wrap;">
+                        <a href="https://wa.me/201112352727" target="_blank" style="text-decoration:none; background:#25D366; color:white; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px;">واتساب 💬</a>
+                        <a href="https://www.facebook.com/aliamr01" target="_blank" style="text-decoration:none; background:#1877F2; color:white; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px;">فيسبوك 📘</a>
+                        <a href="https://youtube.com/@dentaliaauc6125" target="_blank" style="text-decoration:none; background:#FF0000; color:white; padding:8px 15px; border-radius:20px; font-weight:bold; font-size:12px;">يوتيوب ▶️</a>
+                    </div>
+                </div>
+            `;
+            showModal('عن مصمم التطبيق', html);
+        }
+
+        function showChangelog() {
+            let html = `
+                <div style="font-size: 13px; line-height: 1.8; text-align: right;">
+                    <h4 style="color: var(--primary); margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">🌟 الإصدار الأخير</h4>
+                    <ul style="padding-right: 20px; margin-top: 0; margin-bottom: 15px;">
+                        <li>إضافة شاشة تحميل (Splash Screen) احترافية عند الفتح.</li>
+                        <li>إضافة <b>لوجو الموقع</b> بالأعلى ونقل أيقونات التحكم لليسار.</li>
+                        <li>إضافة زر <b>إخفاء القرارات المنتهية</b> في تبويب القرارات.</li>
+                        <li>إعادة <b>سجل التغييرات</b> ليكون في شريط العنوان (الهيدر).</li>
+                    </ul>
+                    
+                    <h4 style="color: var(--primary); margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">🚀 تحديثات سابقة</h4>
+                    <ul style="padding-right: 20px; margin-top: 0; margin-bottom: 15px;">
+                        <li>تسريع التطبيق وإنهاء التهنيج عبر خوارزمية (Debouncing & Caching).</li>
+                        <li>دمج القرارات (الجديدة والقديمة) تلقائياً لمنع التكرار (Deduplication).</li>
+                        <li>نظام الاهتزاز والصوت الذكي للتنبيه بالحالات المنتهية.</li>
+                        <li>الخريطة الديموغرافية التفاعلية لعرض التوزيع الجغرافي للمرضى.</li>
+                        <li>نظام تتبع الأخطاء وجودة البيانات 🚨 مع إمكانية تجاهل الخطأ.</li>
+                    </ul>
+                </div>
+            `;
+            showModal('📝 سجل التغييرات والتحديثات', html);
+        }
+
+        function showDeleteModal() {
+            let html = `
+                <div style="text-align:center; padding:10px;">
+                    <p style="margin-bottom:20px; font-weight:bold; color:var(--danger); font-size:14px;">اختر قاعدة البيانات التي تريد مسحها نهائياً:</p>
+                    <button onclick="deleteDB('inquiry')" class="sync-btn" style="background:var(--card-bg); color:var(--primary); border:2px solid var(--primary); margin-bottom:10px;">🗑️ مسح بيانات مراجعة البيانات</button>
+                    <button onclick="deleteDB('decision')" class="sync-btn" style="background:var(--card-bg); color:var(--success); border:2px solid var(--success); margin-bottom:10px;">🗑️ مسح القرارات والاستدعاء</button>
+                    <button onclick="deleteDB('all')" class="sync-btn" style="background:var(--danger); color:white; border:none; margin-top:20px;">🗑️ مسح الكل (تصفير البرنامج)</button>
+                </div>
+            `;
+            showModal('إدارة وحذف البيانات', html);
+        }
+
+        function deleteDB(type) {
+            if(confirm("تحذير: هل أنت متأكد من رغبتك في حذف البيانات المحددة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.")){
+                if(type === 'inquiry' || type === 'all') {
+                    inquiryData = []; inquiryDecisions = [];
+                    localStorage.removeItem('db_inquiry'); localStorage.removeItem('db_inquiry_decisions');
+                }
+                if(type === 'decision' || type === 'all') {
+                    decisionData = []; localStorage.removeItem('db_decision');
+                }
+                updateMergedData(); 
+                document.getElementById('customModal').remove();
+                alert('تمت عملية الحذف بنجاح.');
+                resetAndRender();
+            }
+        }
+
+        function ignoreIssue(key) { if(!ignoredIssues.includes(key)) { ignoredIssues.push(key); localStorage.setItem('ignored_issues', JSON.stringify(ignoredIssues)); } showDataQuality(); }
+        function resetIgnoredIssues() { ignoredIssues = []; localStorage.removeItem('ignored_issues'); showDataQuality(); }
+        
+        function showDataQuality() {
+            logActivity('فتح جودة البيانات');
+            let issues = []; let idCount = {};
+            inquiryData.forEach(item => { let nid = String(item.nationalId || '').trim(); if(nid && !nid.includes('####')) idCount[nid] = (idCount[nid] || 0) + 1; });
+            inquiryData.forEach(item => {
+                let nid = String(item.nationalId || '').trim(); let issueType = '';
+                if (!nid || nid.length !== 14 || nid.includes('#')) issueType = 'قومي غير صالح';
+                else if (idCount[nid] > 1) issueType = `مكرر (${idCount[nid]} مرة)`;
+                if (issueType) {
+                    let issueKey = btoa(encodeURIComponent(item.name + '_' + nid + '_' + issueType)); 
+                    if (!ignoredIssues.includes(issueKey)) {
+                        issues.push(`<li style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+                            <div><b>${item.name}</b><br><span style="color:var(--danger); font-size:12px;">${issueType}</span> - <span style="font-family:monospace; font-size:11px;">${nid}</span></div>
+                            <button onclick="ignoreIssue('${issueKey}')" style="background:var(--circle-bg); border:1px solid #ddd; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px; color:var(--text-muted); white-space:nowrap; margin-right:10px;">تجاهل 👁️‍🗨️</button>
+                        </li>`);
+                    }
+                }
+            });
+            let listHTML = issues.length > 0 ? `<ul style="text-align:right; font-size:13px; padding:0; list-style:none;">${issues.join('')}</ul>` : `<div style="text-align:center; color:var(--success); padding:20px;"><b>✅ البيانات سليمة تماماً!</b></div>`;
+            if (ignoredIssues.length > 0) listHTML += `<div style="border-top:2px solid #eee; padding-top:10px; margin-top:10px;"><button onclick="resetIgnoredIssues()" style="width:100%; background:var(--card-bg); color:var(--primary); border:1px dashed var(--primary); padding:8px; border-radius:5px; cursor:pointer; font-size:12px; font-weight:bold;">استرجاع الأخطاء المتجاهلة (${ignoredIssues.length}) 🔄</button></div>`;
+            showModal('🚨 تقرير جودة البيانات', listHTML);
+        }
+
+        function showDemographics() {
+            logActivity('فتح الخريطة الديموغرافية');
+            let govCounts = {}; let totalValid = 0;
+            inquiryData.forEach(item => { let idInfo = parseNationalId(item.nationalId); if(idInfo && idInfo.gov) { govCounts[idInfo.gov] = (govCounts[idInfo.gov] || 0) + 1; totalValid++; } });
+            let statsHtml = Object.keys(govCounts).sort((a,b) => govCounts[b] - govCounts[a]).map(gov => {
+                let pct = ((govCounts[gov] / totalValid) * 100).toFixed(1);
+                return `<div style="margin-bottom:12px; cursor:pointer; padding:8px; border-radius:8px; transition:0.2s;" onmouseover="this.style.background='var(--circle-bg)'" onmouseout="this.style.background='transparent'" onclick="showGovPatients('${gov}')">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; font-weight:700;"><span>${gov} <span style="color:var(--primary)">(${govCounts[gov]})</span> 👈</span><span>${pct}%</span></div>
+                    <div style="background:var(--circle-bg); border-radius:10px; height:8px; width:100%; overflow:hidden;"><div style="background:var(--primary-gradient); height:8px; border-radius:10px; width:${pct}%;"></div></div>
+                </div>`;
+            }).join('');
+            showModal('🗺️ التوزيع الجغرافي للمرضى', statsHtml || '<p style="text-align:center;">لا توجد بيانات صحيحة كافية.</p>');
+        }
+        function showGovPatients(gov) {
+            let patients = inquiryData.filter(item => { let idInfo = parseNationalId(item.nationalId); return idInfo && idInfo.gov === gov; });
+            let listHtml = patients.map(p => `<div style="padding:8px; border-bottom:1px solid #eee; font-size:13px;"><b style="color:var(--primary)">${p.name}</b><br><span style="color:var(--text-muted); font-size:11px;">القومي: ${p.nationalId} | الحالة: ${p.status || 'غير محدد'}</span></div>`).join('');
+            showModal(`مرضى محافظة: ${gov}`, `<button onclick="showDemographics()" style="margin-bottom:10px; background:var(--circle-bg); border:1px solid #ddd; color:var(--text-main); padding:6px 12px; border-radius:5px; cursor:pointer; font-weight:bold; width:100%;">⬅️ رجوع للخريطة</button><div style="max-height:50vh; overflow-y:auto; padding-right:5px;">${listHtml}</div>`);
+        }
+
+        function showGlobalRadar() {
+            logActivity('فتح رادار القرارات');
+            let expired = 0, danger = 0, warning = 0, safe = 0;
+            mergedDecisionsData.forEach(item => {
+                let r = getRemainDays(item.decDate);
+                if (r <= 0) expired++; else if (r <= 15) danger++; else if (r <= 30) warning++; else safe++;
+            });
+            let html = `
+                <div style="text-align:center; display:flex; flex-direction:column; gap:10px;">
+                    <div style="background:rgba(198,40,40,0.1); border:1px solid var(--danger); padding:15px; border-radius:10px;">
+                        <h2 style="margin:0; color:var(--danger);">${expired}</h2><span style="font-size:13px; font-weight:bold; color:var(--danger)">🔴 قرارات منتهية</span>
+                    </div>
+                    <div style="background:rgba(230,81,0,0.1); border:1px solid #E65100; padding:15px; border-radius:10px;">
+                        <h2 style="margin:0; color:#E65100;">${danger}</h2><span style="font-size:13px; font-weight:bold; color:#E65100">🟠 خطر (تتوقف خلال 15 يوم)</span>
+                    </div>
+                    <div style="background:rgba(249,168,37,0.1); border:1px solid var(--warning); padding:15px; border-radius:10px;">
+                        <h2 style="margin:0; color:var(--warning);">${warning}</h2><span style="font-size:13px; font-weight:bold; color:var(--warning)">🟡 انتباه (تتوقف خلال شهر)</span>
+                    </div>
+                    <div style="background:rgba(46,125,50,0.1); border:1px solid var(--success); padding:15px; border-radius:10px;">
+                        <h2 style="margin:0; color:var(--success);">${safe}</h2><span style="font-size:13px; font-weight:bold; color:var(--success)">🟢 في السليم</span>
+                    </div>
+                </div>`;
+            showModal('📡 الرادار الشامل للقرارات', html);
+        }
+
+        function showActivityLogUI() {
+            let html = activityLog.map(a => `<div style="padding:10px; border-bottom:1px solid #eee; font-size:13px;">
+                <span style="color:var(--text-muted); font-size:11px;">🕒 ${a.time}</span><br><b style="color:var(--primary)">${a.action}</b>
+            </div>`).join('');
+            showModal('🕒 سجل النشاط الأخير', html || '<p style="text-align:center;">لا يوجد نشاط مسجل حتى الآن.</p>');
+        }
+
+        function showMiniDashboard() {
+            logActivity('فتح اللوحة العائمة');
+            let m=0, mo=0, q=0;
+            inquiryData.forEach(i => { let st = i.status||""; if(st.includes("مستحق") && !st.includes("غير")) m++; else if(st.includes("مؤمن")) mo++; else if(st.includes("قرار")) q++; });
+            let html = `
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:center;">
+                    <div style="background:var(--circle-bg); padding:10px; border-radius:10px;">
+                        <span style="font-size:20px; font-weight:bold; color:var(--primary)">${inquiryData.length}</span><br><span style="font-size:12px;">مستفيد مسجل</span>
+                    </div>
+                    <div style="background:var(--circle-bg); padding:10px; border-radius:10px;">
+                        <span style="font-size:20px; font-weight:bold; color:var(--success)">${mergedDecisionsData.length}</span><br><span style="font-size:12px;">إجمالي القرارات</span>
+                    </div>
+                </div>
+                <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+                <div style="font-size:14px; line-height:1.8;">
+                    <div>✅ المستحقون الفعليون: <b>${m}</b></div>
+                    <div>❌ المؤمن عليهم: <b>${mo}</b></div>
+                    <div>⚠️ لديه قرار في مكان اخر: <b>${q}</b></div>
+                </div>
+            `;
+            showModal('📊 نظرة عامة سريعة', html);
+        }
+
+        function checkReminders() {
+            let soonToExpire = mergedDecisionsData.filter(item => getRemainDays(item.decDate) <= 1);
+            let oldBanner = document.getElementById('reminderBanner');
+            if (oldBanner) oldBanner.remove();
+
+            if (soonToExpire.length > 0) {
+                let reminderContainer = document.createElement('div');
+                reminderContainer.id = 'reminderBanner';
+                reminderContainer.style.display = 'flex'; reminderContainer.style.gap = '8px'; reminderContainer.style.margin = '12px 0';
+                
+                let textBtn = document.createElement('button');
+                textBtn.className = 'sync-btn'; textBtn.style.margin = '0'; textBtn.style.flex = '1';
+                textBtn.style.background = '#FFEBEE'; textBtn.style.color = 'var(--danger)'; textBtn.style.border = '1px solid var(--danger)';
+                textBtn.style.animation = 'pulseRed 2s infinite';
+                textBtn.innerHTML = `⚠️ يوجد ${soonToExpire.length} قرارات حرجة جداً تنتهي خلال 24 ساعة!`;
+                textBtn.onclick = () => { switchTab(2); document.getElementById('sortSelect').value = 'days'; resetAndRender(); };
+
+                let closeBtn = document.createElement('button');
+                closeBtn.innerHTML = '❌'; closeBtn.style.background = 'var(--card-bg)'; closeBtn.style.border = '1px solid #ddd';
+                closeBtn.style.borderRadius = 'var(--radius)'; closeBtn.style.padding = '0 15px'; closeBtn.style.cursor = 'pointer';
+                closeBtn.onclick = () => reminderContainer.remove(); 
+
+                reminderContainer.appendChild(textBtn); reminderContainer.appendChild(closeBtn);
+                document.querySelector('.controls-row').insertAdjacentElement('beforebegin', reminderContainer);
+            }
+        }
+
+        function showModal(title, content) {
+            let existing = document.getElementById('customModal');
+            if(existing) existing.remove();
+            
+            let modalHtml = `
+            <div id="customModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; backdrop-filter: blur(3px);">
+                <div style="background:var(--card-bg); width:90%; max-width:400px; max-height:85vh; display:flex; flex-direction:column; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.3); animation:slideUp 0.3s ease;">
+                    <h3 style="margin:0; padding:15px; border-bottom:1px solid #ddd; text-align:center;">${title}</h3>
+                    <div style="padding:15px; overflow-y:auto; flex:1;">${content}</div>
+                    <div style="padding:10px; border-top:1px solid #ddd;">
+                        <button onclick="document.getElementById('customModal').remove()" style="width:100%; padding:12px; background:var(--primary); color:white; font-weight:bold; font-family:inherit; border:none; border-radius:10px; cursor:pointer;">إغلاق</button>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        window.onscroll = function() { document.getElementById('fabUp').style.display = window.pageYOffset > 300 ? 'flex' : 'none'; };
+
+        updateMergedData();
+        checkReminders(); 
+        render();
+
+    </script>
+</body>
+</html>
